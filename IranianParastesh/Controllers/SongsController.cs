@@ -24,9 +24,7 @@ namespace IranianParastesh.Controllers
         // GET: Songs
         public ActionResult Index()
         {
-            var songs = _context.Songs.ToList();
-
-            return View(songs);
+            return View();
         }
     }
 }

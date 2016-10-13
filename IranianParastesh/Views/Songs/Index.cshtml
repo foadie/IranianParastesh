@@ -1,22 +1,27 @@
-﻿@model IEnumerable<BusinessLogic.DbModels.Song>
-@{
+﻿@{
     ViewBag.Title = "Index";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="row">
-    <audio></audio>
+<div class="row song-search-container">
+    <div class="col-md-12">
+        <div class="input-group">
+            <span class="input-group-btn">
+                <button class="btn btn-default" type="button">جستجو</button>
+            </span>
+            <input type="text" class="form-control" placeholder="جستجو ترانه...">
+        </div><!-- /input-group -->
+    </div><!-- /.col-lg-6 -->
+</div>
+
+<div class="row main-song-container">
+    <audio song-id="0"></audio>
 
     <div class="col-md-6">
 
         <div class="row songs-list">
             <ul id="songs-list" class="list-group">
-                @foreach (var song in Model)
-                {
-                    <li class="list-group-item">
-                        <a href="#" class="song" data-song-id="@song.Id">@song.Name</a>
-                    </li>
-                }
+                
             </ul>
         </div>
 
@@ -28,20 +33,20 @@
 
         <div class="row">
             <div class="col-md-12">
-                <div class="button-div">
-                    <span id="p-ff" class="glyphicon glyphicon-fast-forward player-button"></span>
+                <div id="p-ff" class="button-div">
+                    <span class="glyphicon glyphicon-fast-forward player-button"></span>
                 </div>
-                <div class="button-div">
-                    <span id="p-stop" class="glyphicon glyphicon-stop player-button"></span>
+                <div id="p-stop" class="button-div">
+                    <span class="glyphicon glyphicon-stop player-button"></span>
                 </div>
-                <div class="button-div">
-                    <span id="p-pause" class="glyphicon glyphicon-pause player-button"></span>
+                <div id="p-pause" class="button-div">
+                    <span class="glyphicon glyphicon-pause player-button"></span>
                 </div>
-                <div class="button-div">
-                    <span id="p-play" class="glyphicon glyphicon-play player-button"></span>
+                <div id="p-play" class="button-div">
+                    <span class="glyphicon glyphicon-play player-button"></span>
                 </div>
-                <div class="button-div">
-                    <span id="p-fb" class="glyphicon glyphicon-fast-backward player-button"></span>
+                <div id="p-fb" class="button-div">
+                    <span class="glyphicon glyphicon-fast-backward player-button"></span>
                 </div>
             </div>
         </div>
@@ -59,20 +64,78 @@
     <script>
         $(function () {
 
-            $("#songs-list").on("click", ".song", function () {
-                var link = $(this);
-                $(".song-lyric span").empty();
+            function queryApi(songId, result) {
+                var id = songId > 0 ? songId : "";
                 $.ajax({
-                    url: "/api/songs/" + link.attr("data-song-id"),
+                    url: "/api/songs/" + id,
                     method: "GET",
-                    success: function (song) {
-                        $(".song-lyric span").text(song.Lyric);
-                        $("audio").attr("src", song.Audio);
-                        $("audio").load();
-                        $("audio").trigger('play');
+                    dataType: "JSON",
+                    success: function (data) {
+                        result(data);
                     }
                 });
+            }
+
+            $(window).load(function () {
+                queryApi(0, function (songs) {
+                    for (var i = 0; i < songs.length; i++) {
+                        var li = '<li class="list-group-item"><a href="#" class="song" data-song-id=' + songs[i].Id + '>' + songs[i].Name + '</a></li>';
+                        $('#songs-list').append(li);
+                    }
+                });
+            });
+
+            function playSong(song) {
+                $(".song-lyric span").empty();
+                $(".song-lyric span").text(song.Lyric);
+                $("audio").attr("song-id", song.Id);
+                $("audio").attr("src", song.Audio);
+                $("audio").load();
+                $("audio").trigger('play');
+            }
+
+            $("#songs-list").on("click", ".song", function () {
+                var link = $(this);
+
+                queryApi(link.attr('data-song-id'), function (song) {
+                    playSong(song);
+                    
+                });
+
                 return false;
+            });
+
+            $("#p-stop").on('click', function () {
+                $('audio').prop('currentTime', 0);
+                $('audio').trigger('pause');
+            });
+
+            $("#p-play").on('click', function () {
+                $('audio').trigger('play');
+            });
+
+            $("#p-pause").on('click', function () {
+                $('audio').trigger('pause');
+            });
+
+            $("#p-ff").on('click', function () {
+                var $atag = $('a[data-song-id=' + $('audio').attr('song-id') + ']').parent().next().find('a.song');
+                if ($atag.length > 0) {
+                    queryApi($atag.attr('data-song-id'), function (song) {
+                        playSong(song);
+                    });
+                }
+
+            });
+
+            $("#p-fb").on('click', function () {
+                var $atag = $('a[data-song-id=' + $('audio').attr('song-id') + ']').parent().prev().find('a.song');
+                if ($atag.length > 0) {
+                    queryApi($atag.attr('data-song-id'), function (song) {
+                        playSong(song);
+                    });
+                }
+
             });
 
         });
